@@ -401,6 +401,12 @@ jobs:
              .["puppetserver-reload-timeout"] = 240' .beaker.yml
           cat .beaker.yml
 
+      - name: Debugging Breakpoint
+        uses: luchihoratiu/debug-via-ssh@main
+        with:
+          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+          SSH_PASS: ${{ secrets.SSH_PASS }}
+
       - name: Run Beaker
         working-directory: ${{ env.ACCEPTANCE_WORKING_DIR }}
         run: |-
