@@ -35,6 +35,9 @@ on:
         type: string
         required: false
         default: 'main'
+    secrets:
+      NGROK_AUTH_TOKEN:
+      SSH_PASS:
 
 env:
   VANAGON_LOCATION: "https://github.com/openvoxproject/vanagon#${{ inputs.vanagon_branch }}"
@@ -211,12 +214,19 @@ jobs:
           # matter for any other part of the build process.
           # See https://github.com/OpenVoxProject/openvox/blob/5bcee89748ad1069ac31504cbc4853a6d636c2b0/lib/puppet/feature/base.rb#L13-L19
           echo "root:*:0:0:::" | Out-File -FilePath C:\cygwin64\etc\passwd -Encoding ASCII
-          
+
+      - name: Debugging Breakpoint
+        if: ${{ always() }}
+        uses: luchihoratiu/debug-via-ssh@main
+        with:
+          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+          SSH_PASS: ${{ secrets.SSH_PASS }}
+
       - name: Bundle install
         working-directory: ${{ inputs.working_directory }}
         run: |
           bundle install --retry=3
-          
+
       # from https://github.com/Sharpie/puppet-build-experiment/blob/master/resources/bolt/tasks/configure_builder.sh#L3-L14
       - name: Force docker into 32bit mode
         if: contains(matrix.platform, 'armhf')
