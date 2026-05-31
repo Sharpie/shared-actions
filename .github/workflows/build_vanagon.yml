@@ -89,8 +89,7 @@ jobs:
                 ;;
               windows-msys2-*)
                 runner="windows-latest"
-                # igncr is required so that Cygwin doesn't get confused by Windows line endings
-                shell="C:/msys64/usr/bin/bash.exe -eo pipefail -o igncr '{0}'"
+                shell="msys2 '{0}'"
                 ;;
               *-aarch64 | *-arm64 | *-armhf)
                 runner="ubuntu-24.04-arm"
@@ -160,6 +159,29 @@ jobs:
           arch -x86_64 /usr/local/opt/ruby@3.2/bin/gem install bundler -v 2.7.2
           echo "BUNDLER_VERSION=2.7.2" >> $GITHUB_ENV
 
+      - name: Set up MSYS2 (Windows only)
+        if: ${{ startsWith(matrix.platform, 'windows-msys2') }}
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          # Install packages required by bundle install.
+          # Uses Cygwin-mode packages rather than Windows native packages
+          # as Vanagon expects to be interacting with a POSIX environment.
+          install: >-
+            ruby
+            gcc
+            make
+            git
+            libyaml-devel
+
+      - name: Configure MSYS2 (Windows only)
+        if: ${{ startsWith(matrix.platform, 'windows-msys2') }}
+        run: |
+          # bundle install hangs under MSYS2 Ruby when more than one
+          # job is run in parallel.
+          bundle config set --global jobs 1
+
       - name: Set git params for Windows
         if: ${{ startsWith(matrix.platform, 'windows') }}
         shell: pwsh
@@ -190,38 +212,9 @@ jobs:
           # See https://github.com/OpenVoxProject/openvox/blob/5bcee89748ad1069ac31504cbc4853a6d636c2b0/lib/puppet/feature/base.rb#L13-L19
           echo "root:*:0:0:::" | Out-File -FilePath C:\cygwin64\etc\passwd -Encoding ASCII
           
-      - name: Install msys2 deps (Windows only)
-        if: ${{ startsWith(matrix.platform, 'windows-msys2') }}
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: mingw-w64-ucrt-x86_64-ruby git libyaml-devel gcc make
-
-      - name: Do msys stuff (Windows only)
-        if: ${{ startsWith(matrix.platform, 'windows-msys2') }}
-        shell: pwsh
-        working-directory: ${{ inputs.working_directory }}
-        run: |
-          # This is to make sure Cygwin binaries are used over preinstalled items
-          echo "C:\msys64\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          echo "C:\msys64\ucrt64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          # This is to fix file permissions issues when we check out code outside of Cygwin
-          echo "none /cygdrive cygdrive binary,noacl,posix=0,user 0 0" | Out-File -FilePath C:\msys64\etc\fstab -Encoding ASCII
-          # This is so that Puppet doesn't throw up when we look up Puppet.version in the
-          # openvox repo. It will think it is in a posix environment, but it should not
-          # matter for any other part of the build process.
-          # See https://github.com/OpenVoxProject/openvox/blob/5bcee89748ad1069ac31504cbc4853a6d636c2b0/lib/puppet/feature/base.rb#L13-L19
-          echo "root:*:0:0:::" | Out-File -FilePath C:\msys64\etc\passwd -Encoding ASCII
-          
       - name: Bundle install
         working-directory: ${{ inputs.working_directory }}
         run: |
-          cat $GITHUB_PATH
-          ls -la /ucrt64/bin
-          PATH=/ucrt64/bin/:C:/msys64/usr/bin:${PATH}
-          pacman -Sy --noconfirm mingw-w64-ucrt-x86_64-ruby git libyaml-devel mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-make
-          echo "$(which ruby)"
           bundle install --retry=3
           
       # from https://github.com/Sharpie/puppet-build-experiment/blob/master/resources/bolt/tasks/configure_builder.sh#L3-L14
