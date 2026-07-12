@@ -404,6 +404,7 @@ jobs:
       - name: Run Beaker
         working-directory: ${{ env.ACCEPTANCE_WORKING_DIR }}
         run: |-
+          mkdir -p .beaker
           # Options feed in from .beaker.yml generated above
           bundle exec beaker init --hosts hosts.yaml
           # The provision step is still needed here, see notes in the
