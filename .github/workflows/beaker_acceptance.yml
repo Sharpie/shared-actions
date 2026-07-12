@@ -361,6 +361,7 @@ jobs:
           [
             {
               "ssh": {
+                "verify_host_key": false,
                 "keys": [
                   "${SSH_KEY}"
                 ]
