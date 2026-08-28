@@ -50,11 +50,15 @@ jobs:
         git fetch --prune upstream
 
         today=$(date -u -I)
-        for branch in $(git for-each-ref --format='%(refname:short)' refs/remotes/upstream)
+        for branch in $(git for-each-ref --format='%(refname)' refs/remotes/upstream)
         do
-          name="${branch#upstream/}"
+          name="${branch#refs/remotes/upstream/}"
 
-          backup="backup/${today}/${name}"
+          if [[ "${name}" == HEAD ]]; then
+            continue
+          fi
+
+          backup="backup/${today}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}/${name}"
           git branch "${backup}" "${branch}"
           git push origin "refs/heads/${backup}"
 
