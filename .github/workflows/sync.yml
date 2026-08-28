@@ -1,8 +1,21 @@
 name: Sync any source updates
+
 on:
   workflow_call:
+    inputs:
+      upstream_owner:
+        description: GitHub owner of the upstream repository with the same name
+        required: false
+        default: puppetlabs
+        type: string
+    secrets:
+      WORKFLOW_TOKEN:
+        description: Optional token used instead of GITHUB_TOKEN for protected refs
+        required: false
+
 permissions:
   contents: write
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -11,33 +24,41 @@ jobs:
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
-    - name: Back up and sync all updates
-      env:
-        GITHUB_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
-        REPO_NAME: ${{ github.event.repository.name }}
-      run:  |
-        MIRROR_DATE=$(date --date=$(gh repo view overlookinfra/${REPO_NAME} --json 'updatedAt' -t '{{ .updatedAt }}') '+%s')
-        UPSTREAM_DATE=$(date --date=$(gh repo view puppetlabs/${REPO_NAME} --json 'updatedAt' -t '{{ .updatedAt }}') '+%s')
+        token: ${{ secrets.WORKFLOW_TOKEN || github.token }}
 
-        echo "MIRROR_DATE: ${MIRROR_DATE}"
-        echo "UPSTREAM_DATE: ${UPSTREAM_DATE}"
+    - name: Back up and sync all updates
+      shell: bash
+      env:
+        GH_TOKEN: ${{ secrets.WORKFLOW_TOKEN || github.token }}
+        MIRROR_REPOSITORY: ${{ github.repository }}
+        REPOSITORY_NAME: ${{ github.event.repository.name }}
+        UPSTREAM_OWNER: ${{ inputs.upstream_owner }}
+      run: |
+        set -euo pipefail
+
+        upstream_repository="${UPSTREAM_OWNER}/${REPOSITORY_NAME}"
+        mirror_date=$(date --date="$(gh repo view "${MIRROR_REPOSITORY}" --json updatedAt --jq .updatedAt)" '+%s')
+        upstream_date=$(date --date="$(gh repo view "${upstream_repository}" --json updatedAt --jq .updatedAt)" '+%s')
+
+        echo "MIRROR_DATE: ${mirror_date}"
+        echo "UPSTREAM_DATE: ${upstream_date}"
 
         # Only mirror if there are actually updates
-        if [[ $MIRROR_DATE -ge $UPSTREAM_DATE ]]; then exit 0; fi
-        
-        git remote add upstream $(git config --get remote.origin.url | sed 's|overlookinfra|puppetlabs|')
-        git fetch -p upstream
+        if [[ ${mirror_date} -ge ${upstream_date} ]]; then exit 0; fi
 
-        TODAY=$(date -I)
-        for BRANCH in $(git --no-pager branch -r --format='%(refname:short)' --list 'upstream*')
+        git remote add upstream "https://github.com/${upstream_repository}.git"
+        git fetch --prune upstream
+
+        today=$(date -u -I)
+        for branch in $(git for-each-ref --format='%(refname:short)' refs/remotes/upstream)
         do
-          NAME=$(echo $BRANCH | sed 's|upstream/||')
+          name="${branch#upstream/}"
 
-          git branch "backup/$TODAY/$NAME" $BRANCH
-          git push origin "backup/$TODAY/$NAME"
+          backup="backup/${today}/${name}"
+          git branch "${backup}" "${branch}"
+          git push origin "refs/heads/${backup}"
 
-          git fetch upstream +refs/heads/$NAME:$NAME
-          git push origin +refs/heads/$NAME
+          git push origin "+${branch}:refs/heads/${name}"
         done
 
         git push origin --tags
