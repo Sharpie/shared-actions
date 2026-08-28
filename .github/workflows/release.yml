@@ -151,6 +151,7 @@ jobs:
             "${{ inputs.version }}"
             --title "${{ inputs.version }}"
             --generate-notes
+            --verify-tag
           )
 
           if [ "${{ inputs.prerelease }}" = "true" ]; then
