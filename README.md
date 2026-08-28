@@ -6,23 +6,60 @@ but I'm sure that more uses will crop up soon.
 
 ## Actions:
 
-### Syncing / mirroring actions:
+### Syncing / mirroring actions
 
-- These actions will automatically sync an upstream repo of the same name once a day.
-- The actual code of the upstream repo will be visible as branches and the plumbing branch should be set to default, with the sync action and documentation on how to use it.
-- Branches and tags are all mirrored
-- Backup branches are created with dates each time the sync runs. This makes sure that we still have a ref to commits even if upstream forcibly deletes things.
+- These actions automatically sync an upstream repository of the same name
+  once a day.
+- The upstream code is visible as branches and tags.
+- The `plumbing` branch must be the default branch and contain the calling
+  sync workflow and documentation.
+- Fetched upstream branches are also published below `backup/<date>/`.
 
 The two actions do things a little bit differently.
 
 - `/.github/workflows/mirror.yml`
-  - Designed to be used in a template repo that clones and mirrors a repo all on its own based on its name.
-  - To use it, simply create a new repository with the appropriate name. eg, `overlookinfra/foo` will mirror `puppetlabs/foo`.
-  - This one doesn't work well because github doesn't like it when actions create/modify workflows. There's a permission to allow this, but I couldn't get it to work properly.
-  - Because of ☝️, workflow files are deleted with each sync, which makes the repo get out of sync easily.
+  - Designed to be used in a template repository that clones and mirrors an
+    upstream repository based on its name.
+  - To use it, create a new repository with the appropriate name.
+    For example, `OpenVoxProject/foo` will mirror `puppetlabs/foo`.
+  - This one does not work well because GitHub restricts workflows from
+    creating or modifying workflow files.
+  - Workflow files are therefore deleted with each sync, making it easy for
+    the repository to become unsynchronized.
 - `/.github/workflows/sync.yml`
-  - This one is far simpler. It relies on the user to have manually cloned each repo and set up the plumbing branch.
-  - It basically just does a `git fetch` and a `git push` and creates the backup branches.
+  - This workflow relies on the user having cloned each repository and set up
+    its plumbing branch.
+  - It uses `git fetch` and `git push` to synchronize branches and tags.
+
+An invoking repository can schedule the reusable sync workflow like this:
+
+```yaml
+name: Sync any source updates
+
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: '17 2 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    uses: OpenVoxProject/shared-actions/.github/workflows/sync.yml@main
+    secrets: inherit
+```
+
+The caller must live on the `plumbing` default branch.
+By default, the reusable workflow mirrors the repository of the same name
+from the `puppetlabs` organization.
+Set the `upstream_owner` input if a repository has a different upstream owner.
+The caller's `GITHUB_TOKEN` is used unless an optional `WORKFLOW_TOKEN` secret
+is inherited or explicitly passed.
+That token needs permission to force-push the mirrored branches and tags under
+the repository's branch and tag protection rules.
+The workflow uses each repository's GitHub `updatedAt` value to skip a run when
+the mirror is at least as recent as its upstream.
 
 ### Beaker Acceptance action:
 
