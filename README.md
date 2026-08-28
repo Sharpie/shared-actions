@@ -58,8 +58,7 @@ The caller's `GITHUB_TOKEN` is used unless an optional `WORKFLOW_TOKEN` secret
 is inherited or explicitly passed.
 That token needs permission to force-push the mirrored branches and tags under
 the repository's branch and tag protection rules.
-The workflow uses each repository's GitHub `updatedAt` value to skip a run when
-the mirror is at least as recent as its upstream.
+The workflow fetches and pushes the upstream branches and tags on every run.
 
 ### Beaker Acceptance action:
 

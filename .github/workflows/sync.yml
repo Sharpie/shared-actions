@@ -29,23 +29,12 @@ jobs:
     - name: Back up and sync all updates
       shell: bash
       env:
-        GH_TOKEN: ${{ secrets.WORKFLOW_TOKEN || github.token }}
-        MIRROR_REPOSITORY: ${{ github.repository }}
         REPOSITORY_NAME: ${{ github.event.repository.name }}
         UPSTREAM_OWNER: ${{ inputs.upstream_owner }}
       run: |
         set -euo pipefail
 
         upstream_repository="${UPSTREAM_OWNER}/${REPOSITORY_NAME}"
-        mirror_date=$(date --date="$(gh repo view "${MIRROR_REPOSITORY}" --json updatedAt --jq .updatedAt)" '+%s')
-        upstream_date=$(date --date="$(gh repo view "${upstream_repository}" --json updatedAt --jq .updatedAt)" '+%s')
-
-        echo "MIRROR_DATE: ${mirror_date}"
-        echo "UPSTREAM_DATE: ${upstream_date}"
-
-        # Only mirror if there are actually updates
-        if [[ ${mirror_date} -ge ${upstream_date} ]]; then exit 0; fi
-
         git remote add upstream "https://github.com/${upstream_repository}.git"
         git fetch --prune upstream
 
@@ -58,10 +47,13 @@ jobs:
             continue
           fi
 
+          echo "Syncing ${name} from upstream/${name} to origin/${name}"
+
           backup="backup/${today}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}/${name}"
           git branch "${backup}" "${branch}"
           git push origin "refs/heads/${backup}"
 
+          echo "pushing ${name} to origin/${name}"
           git push origin "+${branch}:refs/heads/${name}"
         done
 
