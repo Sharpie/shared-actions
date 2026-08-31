@@ -145,7 +145,7 @@ jobs:
 
           echo '*** Installing x86_64 homebrew and Ruby ***'
           arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          arch -x86_64 /bin/bash -c 'brew install ruby@3.2'
+          arch -x86_64 /bin/bash -c 'brew install ruby@4.0'
 
           echo '*** Setting up environment variables ***'
           eval "$(/usr/local/bin/brew shellenv)"
@@ -156,12 +156,8 @@ jobs:
           echo "INFOPATH=${INFOPATH}" >> $GITHUB_ENV
           echo "${HOMEBREW_PREFIX}/bin" >> $GITHUB_PATH
           echo "${HOMEBREW_PREFIX}/sbin" >> $GITHUB_PATH
-          echo '/usr/local/opt/ruby@3.2/bin' >> $GITHUB_PATH
-          echo '/usr/local/lib/ruby/gems/3.2.0/bin' >> $GITHUB_PATH
-          
-          echo '*** Using 2.x version of bundler for now ***'
-          arch -x86_64 /usr/local/opt/ruby@3.2/bin/gem install bundler -v 2.7.2
-          echo "BUNDLER_VERSION=2.7.2" >> $GITHUB_ENV
+          echo '/usr/local/opt/ruby@4.0/bin' >> $GITHUB_PATH
+          echo '/usr/local/lib/ruby/gems/4.0.0/bin' >> $GITHUB_PATH
 
       - name: Set up MSYS2 (Windows only)
         if: ${{ startsWith(matrix.platform, 'windows-msys2') }}
