@@ -75,8 +75,8 @@ jobs:
           for platform in "${platforms[@]}"; do
             case "$platform" in
               macos-*-x86_64)
-                runner="macos-26"
-                shell="arch -x86_64 /bin/bash -e {0}"
+                runner="macos-26-intel"
+                shell="bash"
                 ;;
               macos-*-arm64)
                 runner="macos-26"
@@ -123,45 +123,10 @@ jobs:
 
     steps:
       - name: Install Ruby (except Windows and macos-all-x86_64)
-        if: ${{ matrix.platform != 'macos-all-x86_64' && ! startsWith(matrix.platform, 'windows') }}
+        if: ${{ ! startsWith(matrix.platform, 'windows') }}
         uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           ruby-version: '3.2'
-
-      - name: Setup brew and Ruby (MacOS x86_64 only)
-        if: ${{ matrix.platform == 'macos-all-x86_64' }}
-        # We must fully uninstall the existing brew install as we need
-        # the x86_64 version, and then we must install Ruby ourselves
-        shell: bash
-        run: |-
-          echo '*** Removing existing homebrew installation ***'
-          brew list --cask | xargs -r brew uninstall --cask --force
-          brew list --formula | xargs -r brew uninstall --force --ignore-dependencies
-          brew autoremove
-          sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)" -- --force
-
-          echo '*** Removing /opt/homebrew directory ***'
-          sudo rm -rf /opt/homebrew
-
-          echo '*** Installing x86_64 homebrew and Ruby ***'
-          arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          arch -x86_64 /bin/bash -c 'brew install ruby@3.2'
-
-          echo '*** Setting up environment variables ***'
-          eval "$(/usr/local/bin/brew shellenv)"
-          echo "HOMEBREW_PREFIX=${HOMEBREW_PREFIX}" >> $GITHUB_ENV
-          echo "HOMEBREW_CELLAR=${HOMEBREW_CELLAR}" >> $GITHUB_ENV
-          echo "HOMEBREW_REPOSITORY=${HOMEBREW_REPOSITORY}" >> $GITHUB_ENV
-          echo "MANPATH=${MANPATH}" >> $GITHUB_ENV
-          echo "INFOPATH=${INFOPATH}" >> $GITHUB_ENV
-          echo "${HOMEBREW_PREFIX}/bin" >> $GITHUB_PATH
-          echo "${HOMEBREW_PREFIX}/sbin" >> $GITHUB_PATH
-          echo '/usr/local/opt/ruby@3.2/bin' >> $GITHUB_PATH
-          echo '/usr/local/lib/ruby/gems/3.2.0/bin' >> $GITHUB_PATH
-          
-          echo '*** Using 2.x version of bundler for now ***'
-          arch -x86_64 /usr/local/opt/ruby@3.2/bin/gem install bundler -v 2.7.2
-          echo "BUNDLER_VERSION=2.7.2" >> $GITHUB_ENV
 
       - name: Set up MSYS2 (Windows only)
         if: ${{ startsWith(matrix.platform, 'windows-msys2') }}
