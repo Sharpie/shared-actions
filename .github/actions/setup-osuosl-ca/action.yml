@@ -18,6 +18,8 @@ runs:
   steps:
     - name: Set Up OSUOSL CA Certificate
       shell: bash
+      env:
+        SHELLOPTS: igncr
       run: |
         # Replace any backslashes with forward slashes so that a Windows path
         # is usable from both POSIX and WIN32 contexts.
