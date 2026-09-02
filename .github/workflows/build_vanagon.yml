@@ -150,7 +150,6 @@ jobs:
       - name: Set up Cygwin (Windows, OpenVox 8.x only)
         if: ${{ startsWith(matrix.platform, 'windows-all') }}
         shell: pwsh
-        working-directory: ${{ inputs.working_directory }}
         run: |
           $url="https://cygwin.com/setup-x86_64.exe"
           $dest="C:\setup-x86_64.exe"
