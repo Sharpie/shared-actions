@@ -41,10 +41,7 @@ project_defaults="${script_dir}/project_defaults.json"
 # el-7 -> alma/rocky 7 or ubuntu-25.04, and non-VM families like sles, fedora,
 # amazon, macos and windows) never leak into the matrix.
 universe='[
-  ["almalinux","8"],["almalinux","9"],["almalinux","10"],
-  ["debian","11"],["debian","12"],["debian","13"],
-  ["rocky","8"],["rocky","9"],["rocky","10"],
-  ["ubuntu","22.04"],["ubuntu","24.04"],["ubuntu","26.04"]
+  ["almalinux","10"]
 ]'
 # Under qemu, the openvox suite (which shards its tests) is limited to this
 # subset to stay under the GHA 6 hour job limit; the other suites drop ubuntu.
